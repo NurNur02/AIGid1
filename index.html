@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>AI Museum Assistant | Виртуальный гид по музеям Казахстана</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-sidebar: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #555;
+            --text-muted: #888;
+            --border-color: #e0e0e0;
+            --accent: #C9A84C;
+            --accent-dark: #B8922E;
+            --accent-light: #F5D98F;
+            --bot-bg: #f0f2f5;
+            --user-bg: linear-gradient(135deg, #C9A84C, #B8922E);
+            --user-text: #fff;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --success: #27ae60;
+            --error: #e74c3c;
+            --warning: #f39c12;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-sidebar: #0f0f23;
+            --bg-card: #1a1a2e;
+            --text-primary: #f0ebd8;
+            --text-secondary: #b8b8c8;
+            --text-muted: #8a8a9a;
+            --border-color: #2a2a3e;
+            --bot-bg: #2a2a3e;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 340px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .logo-icon {
+            font-size: 1.8rem;
+        }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .close-sidebar {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .search-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-section h3 {
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .search-box button {
+            padding: 10px 16px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: #1a1a2e;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-box button:hover {
+            background: var(--accent-dark);
+            transform: translateY(-1px);
+        }
+
+        .city-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .city-filter {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            transition: var(--transition);
+        }
+
+        .city-filter:hover,
+        .city-filter.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #1a1a2e;
+        }
+
+        .museum-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .museum-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .museum-card:hover {
+            transform: translateX(4px);
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        .museum-card h4 {
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+            padding-right: 30px;
+        }
+
+        .museum-card .museum-city {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .museum-card .museum-address {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .museum-card .museum-schedule {
+            font-size: 0.7rem;
+            color: var(--accent);
+        }
+
+        .favorite-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .favorite-btn.active {
+            color: #ffc107;
+        }
+
+        .favorites-section {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .favorites-section h3 {
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .favorites-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .favorite-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .favorite-item:hover {
+            border-color: var(--accent);
+        }
+
+        .favorite-item button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--error);
+            font-size: 1rem;
+        }
+
+        .theme-toggle {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .theme-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: var(--transition);
+        }
+
+        .theme-btn:hover {
+            background: var(--accent);
+            color: #1a1a2e;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        .header-info h1 {
+            font-size: 1.2rem;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .header-info p {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .voice-btn, .clear-chat {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            padding: 8px;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .voice-btn:hover, .clear-chat:hover {
+            background: var(--bg-secondary);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .avatar {
+            background: var(--accent);
+        }
+
+        .message.bot .avatar {
+            background: var(--bot-bg);
+        }
+
+        .message .content {
+            background: var(--bot-bg);
+            padding: 12px 16px;
+            border-radius: 18px;
+            border-top-left-radius: 4px;
+            line-height: 1.5;
+            font-size: 0.85rem;
+        }
+
+        .message.user .content {
+            background: var(--user-bg);
+            color: var(--user-text);
+            border-radius: 18px;
+            border-top-right-radius: 4px;
+        }
+
+        .message .content p {
+            margin-bottom: 6px;
+        }
+
+        .message .content ul, .message .content ol {
+            margin-left: 20px;
+            margin-bottom: 6px;
+        }
+
+        .message-time {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            align-self: flex-end;
+            margin-top: 4px;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--bot-bg);
+            width: fit-content;
+            border-radius: 20px;
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dots span {
+            width: 6px;
+            height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .quick-suggestions {
+            padding: 12px 24px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+
+        .suggestion-chip {
+            padding: 8px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+
+        .suggestion-chip:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #1a1a2e;
+            transform: translateY(-1px);
+        }
+
+        .chat-input-container {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            resize: none;
+            outline: none;
+            color: var(--text-primary);
+            max-height: 100px;
+        }
+
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            color: #1a1a2e;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            background: var(--accent-dark);
+        }
+
+        .language-switch {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .lang-option {
+            background: none;
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            border-radius: 6px;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .lang-option.active {
+            background: var(--accent);
+            color: #1a1a2e;
+        }
+
+        .voice-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .voice-modal-content {
+            background: var(--bg-primary);
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            animation: pulse 1s infinite;
+        }
+
+        .voice-wave {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .voice-wave span {
+            width: 6px;
+            height: 30px;
+            background: var(--accent);
+            border-radius: 3px;
+            animation: wave 1s infinite;
+        }
+
+        .voice-wave span:nth-child(2) { animation-delay: 0.1s; height: 45px; }
+        .voice-wave span:nth-child(3) { animation-delay: 0.2s; height: 60px; }
+        .voice-wave span:nth-child(4) { animation-delay: 0.3s; height: 45px; }
+        .voice-wave span:nth-child(5) { animation-delay: 0.4s; height: 30px; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.5); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        #stopVoiceBtn {
+            margin-top: 20px;
+            padding: 8px 24px;
+            background: var(--error);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -340px;
+                top: 0;
+                height: 100%;
+                z-index: 200;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .close-sidebar {
+                display: block;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .quick-suggestions {
+                padding: 8px 16px;
+            }
+            
+            .chat-messages {
+                padding: 16px;
+            }
+            
+            .chat-header {
+                padding: 12px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">🏛️</span>
+                    <span class="logo-text">AI Museum Assistant</span>
+                </div>
+                <button class="close-sidebar" id="closeSidebar">✕</button>
+            </div>
+            <div class="search-section">
+                <h3>🔍 Поиск музеев</h3>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Название или город...">
+                    <button id="searchBtn">Найти</button>
+                </div>
+                <div class="city-filters" id="cityFilters">
+                    <button class="city-filter active" data-city="">Все</button>
+                    <button class="city-filter" data-city="Астана">Астана</button>
+                    <button class="city-filter" data-city="Алматы">Алматы</button>
+                    <button class="city-filter" data-city="Кокшетау">Көкшетау</button>
+                    <button class="city-filter" data-city="Шымкент">Шымкент</button>
+                </div>
+            </div>
+            <div class="museum-list" id="museumList"><div class="loading-spinner"></div></div>
+            <div class="favorites-section">
+                <h3>⭐ Избранное</h3>
+                <div id="favoritesList" class="favorites-list"></div>
+            </div>
+            <div class="theme-toggle">
+                <button id="themeToggleBtn" class="theme-btn">🌙 Тёмная тема</button>
+            </div>
+        </aside>
+        <main class="chat-main">
+            <header class="chat-header">
+                <button class="menu-toggle" id="menuToggle">☰</button>
+                <div class="header-info">
+                    <h1>🤖 AI Museum Assistant</h1>
+                    <p>Виртуальный гид по музеям Казахстана</p>
+                </div>
+                <div class="header-actions">
+                    <button class="voice-btn" id="voiceBtn" title="Голосовой ввод">🎤</button>
+                    <button class="clear-chat" id="clearChat" title="Очистить чат">🗑️</button>
+                </div>
+            </header>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="avatar">🤖</div>
+                    <div class="content">
+                        <p>👋 <strong>Қош келдіңіз! / Добро пожаловать! / Welcome!</strong></p>
+                        <p>Я AI-помощник по музеям Казахстана. Вот что я умею:</p>
+                        <ul>
+                            <li>🏛️ <strong>Находить музеи</strong> - в любом городе Казахстана</li>
+                            <li>🕐 <strong>Расписание и адреса</strong> - полная информация о музеях</li>
+                            <li>🎟️ <strong>Стоимость билетов</strong> - актуальные цены</li>
+                            <li>🏺 <strong>Описание экспонатов</strong> - популярные коллекции</li>
+                            <li>⭐ <strong>Рекомендации</strong> - лучшие музеи для посещения</li>
+                            <li>🗺️ <strong>Построение маршрута</strong> - как добраться до музея</li>
+                        </ul>
+                        <p>Просто спросите меня о любом музее Казахстана! 🇰🇿</p>
+                    </div>
+                    <div class="message-time">Сейчас</div>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator"><div class="dots"><span></span><span></span><span></span></div><span>AI думает...</span></div>
+            <div class="quick-suggestions" id="quickSuggestions">
+                <button class="suggestion-chip" data-query="Найди музеи в Кокшетау">🏛️ Музеи Кокшетау</button>
+                <button class="suggestion-chip" data-query="Расскажи о Национальном музее в Астане">🇰🇿 Национальный музей</button>
+                <button class="suggestion-chip" data-query="Расписание работы музеев в Алматы">🕐 Расписание</button>
+                <button class="suggestion-chip" data-query="Сколько стоят билеты в музей?">🎟️ Цена билетов</button>
+                <button class="suggestion-chip" data-query="Какие известные экспонаты есть в музеях Казахстана?">🏺 Известные экспонаты</button>
+                <button class="suggestion-chip" data-query="Рекомендуй интересные музеи">⭐ Рекомендации</button>
+            </div>
+            <div class="chat-input-container">
+                <div class="input-wrapper">
+                    <textarea id="messageInput" placeholder="Напишите сообщение..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn">➤</button>
+                </div>
+                <div class="language-switch">
+                    <button class="lang-option active" data-lang="ru">РУС</button>
+                    <button class="lang-option" data-lang="kz">ҚАЗ</button>
+                    <button class="lang-option" data-lang="en">ENG</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="voice-modal" id="voiceModal">
+        <div class="voice-modal-content">
+            <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+            <p>🎙️ Говорите...</p>
+            <button id="stopVoiceBtn">Отмена</button>
+        </div>
+    </div>
+    <script>
+        (function(){
+            const MUSEUMS_DB = [
+                { id:1, name:{ru:"Акмолинский областной историко-краеведческий музей",kz:"Ақмола облыстық тарихи-өлкетану музейі",en:"Akmola Regional Museum"}, city:"Кокшетау", city_kz:"Көкшетау", description:{ru:"Крупнейший музей Акмолинской области, основан в 1958 году. Более 50 000 экспонатов.",kz:"Ақмола облысының ең ірі музейі, 1958 жылы құрылған. 50 000-нан астам экспонат.",en:"The largest museum of Akmola region, founded in 1958."}, schedule:{mon:"Выходной",tue_fri:"09:00-18:00",sat:"10:00-17:00",sun:"10:00-16:00"}, address:{ru:"ул. Абылай хана, 61, Кокшетау",kz:"Абылай хан көшесі, 61, Көкшетау",en:"61 Ablai Khan St, Kokshetau"}, coordinates:{lat:53.2838,lng:69.3948}, phone:"+7 (716-2) 25-53-81", website:"museum.akmo.gov.kz", ticketPrice:{adult:"800 ₸",student:"400 ₸",child:"Бесплатно"}, exhibits:["Бронзовый котёл","Золотой торк","Сабля батыра","Юрта","Трактор ДТ-54"] },
+                { id:2, name:{ru:"Национальный музей Республики Казахстан",kz:"Қазақстан Республикасының Ұлттық музейі",en:"National Museum of Kazakhstan"}, city:"Астана",city_kz:"Астана", description:{ru:"Крупнейший музей Центральной Азии, открыт в 2014 году. Площадь 74 000 м².",kz:"Орталық Азиядағы ең ірі музей, 2014 жылы ашылған.",en:"The largest museum in Central Asia, opened in 2014."}, schedule:{mon:"Выходной",tue_sun:"10:00-18:00"}, address:{ru:"пр. Тәуелсіздік, 54, Астана",kz:"Тәуелсіздік даңғылы, 54, Астана",en:"54 Tauelsizdik Ave, Astana"}, coordinates:{lat:51.1162,lng:71.4707}, phone:"+7 (7172) 91-92-12", website:"nationalmuseum.kz", ticketPrice:{adult:"1000 ₸",student:"500 ₸",child:"Бесплатно"}, exhibits:["Золотой человек","Древняя керамика","Оружие кочевников","Национальные костюмы","Сакские артефакты"] },
+                { id:3, name:{ru:"Центральный государственный музей РК",kz:"ҚР Орталық мемлекеттік музейі",en:"Central State Museum of Kazakhstan"}, city:"Алматы",city_kz:"Алматы", description:{ru:"Один из старейших музеев, основан в 1931 году. Более 300 000 экспонатов.",kz:"Ең көне музейлердің бірі, 1931 жылы құрылған. 300 000 экспонат.",en:"One of the oldest museums, founded in 1931. Over 300,000 exhibits."}, schedule:{mon:"Выходной",tue_sun:"10:00-18:00"}, address:{ru:"мкр. Самал-1, 44, Алматы",kz:"Самал-1 шағын ауданы, 44, Алматы",en:"44 Samal-1 Microdistrict, Almaty"}, coordinates:{lat:43.2383,lng:76.9465}, phone:"+7 (727) 264-21-16", website:"csmrk.kz", ticketPrice:{adult:"500 ₸",student:"250 ₸",child:"Бесплатно"}, exhibits:["Золотые украшения саков","Казахское оружие","Народные инструменты","Ковры","Картины"] },
+                { id:4, name:{ru:"Музей искусств им. А. Кастеева",kz:"Ә. Қастеев атындағы өнер музейі",en:"A. Kasteev State Museum of Arts"}, city:"Алматы",city_kz:"Алматы", description:{ru:"Крупнейший художественный музей Казахстана, более 25 000 произведений искусства.",kz:"Қазақстанның ең ірі көркемсурет музейі, 25 000 туынды.",en:"Largest art museum in Kazakhstan."}, schedule:{mon:"Выходной",tue_sun:"10:00-18:00"}, address:{ru:"ул. Сатпаева, 30А, Алматы",kz:"Сәтбаев көшесі, 30А, Алматы",en:"30A Satpayev St, Almaty"}, coordinates:{lat:43.2371,lng:76.9307}, phone:"+7 (727) 272-13-20", website:"gmusar.kz", ticketPrice:{adult:"500 ₸",student:"250 ₸",child:"Бесплатно"}, exhibits:["Картины А. Кастеева","Русское искусство","Европейская живопись","Современное искусство","Графика"] },
+                { id:5, name:{ru:"Музей первого президента РК",kz:"ҚР Тұңғыш Президентінің музейі",en:"Museum of the First President"}, city:"Астана",city_kz:"Астана", description:{ru:"Музей, посвящённый жизни и деятельности Нурсултана Назарбаева.",kz:"Нұрсұлтан Назарбаевтың өмірі мен қызметіне арналған музей.",en:"Museum dedicated to Nursultan Nazarbayev."}, schedule:{mon:"Выходной",tue_sun:"10:00-18:00"}, address:{ru:"пр. Бейбітшілік, 11, Астана",kz:"Бейбітшілік даңғылы, 11, Астана",en:"11 Beybitshilik Ave, Astana"}, coordinates:{lat:51.1362,lng:71.4240}, phone:"+7 (7172) 75-13-33", website:"fmuseum.kz", ticketPrice:{adult:"700 ₸",student:"350 ₸",child:"Бесплатно"}, exhibits:["Личные вещи","Подарки","Фотографии","Документы","Награды"] }
+            ];
+            let currentLanguage = 'ru';
+            let currentMuseums = [...MUSEUMS_DB];
+            let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            let chatMessages = [];
+            let currentRecognition = null;
+            const sidebar = document.getElementById('sidebar');
+            const museumListDiv = document.getElementById('museumList');
+            const favoritesListDiv = document.getElementById('favoritesList');
+            const chatMessagesDiv = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const voiceBtn = document.getElementById('voiceBtn');
+            const clearChatBtn = document.getElementById('clearChat');
+            const menuToggle = document.getElementById('menuToggle');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const voiceModal = document.getElementById('voiceModal');
+            const stopVoiceBtn = document.getElementById('stopVoiceBtn');
+            function showToast(msg){ const t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a1a2e;padding:10px 20px;border-radius:30px;z-index:1000;animation:slideIn 0.3s ease;box-shadow:var(--shadow-lg)'; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
+            function formatMessage(c){ return c.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\[(.*?)\]\((.*?)\)/g,'<a href="$2" target="_blank" style="color:var(--accent);text-decoration:underline">$1</a>'); }
+            function addMessageToChat(role,content){ const d=document.createElement('div'); d.className=`message ${role}`; const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); d.innerHTML=`<div class="avatar">${role==='user'?'👤':'🤖'}</div><div class="content">${formatMessage(content)}</div><div class="message-time">${time}</div>`; chatMessagesDiv.appendChild(d); chatMessagesDiv.scrollTop=chatMessagesDiv.scrollHeight; chatMessages.push({role,content,time}); saveChatHistory(); }
+            function saveChatHistory(){ localStorage.setItem('chatHistory',JSON.stringify(chatMessages.slice(-50))); }
+            function loadChatHistory(){ const saved=localStorage.getItem('chatHistory'); if(saved){ try{ const h=JSON.parse(saved); chatMessages=h; chatMessagesDiv.innerHTML=''; h.forEach(msg=>{ const d=document.createElement('div'); d.className=`message ${msg.role}`; d.innerHTML=`<div class="avatar">${msg.role==='user'?'👤':'🤖'}</div><div class="content">${formatMessage(msg.content)}</div><div class="message-time">${msg.time}</div>`; chatMessagesDiv.appendChild(d); }); chatMessagesDiv.scrollTop=chatMessagesDiv.scrollHeight; }catch(e){} } }
+            function clearChatHistory(){ chatMessages=[]; localStorage.removeItem('chatHistory'); chatMessagesDiv.innerHTML=`<div class="message bot"><div class="avatar">🤖</div><div class="content"><p>👋 История чата очищена! Чем могу помочь?</p></div><div class="message-time">Сейчас</div></div>`; showToast('🗑️ История чата очищена'); }
+            function renderMuseums(arr=currentMuseums){ if(!arr.length){ museumListDiv.innerHTML='<p style="padding:20px;text-align:center;color:var(--text-muted)">Музеи не найдены</p>'; return; } museumListDiv.innerHTML=arr.map(m=>`<div class="museum-card" data-id="${m.id}"><button class="favorite-btn ${favorites.includes(m.id)?'active':''}" data-id="${m.id}">${favorites.includes(m.id)?'★':'☆'}</button><h4>${m.name[currentLanguage]||m.name.ru}</h4><div class="museum-city">📍 ${m.city}</div><div class="museum-address">📌 ${typeof m.address==='object'?(m.address[currentLanguage]||m.address.ru):m.address}</div><div class="museum-schedule">🕐 ${typeof m.schedule==='object'?(m.schedule.tue_fri||m.schedule.tue_sun||'10:00-18:00'):m.schedule}</div></div>`).join(''); document.querySelectorAll('.museum-card').forEach(c=>{ c.addEventListener('click',(e)=>{ if(!e.target.classList.contains('favorite-btn')){ const mu=arr.find(m=>m.id==c.dataset.id); if(mu){ messageInput.value=`Расскажи подробнее о музее ${mu.name[currentLanguage]||mu.name.ru}`; sendMessage(); if(window.innerWidth<=768) sidebar.classList.remove('open'); } } }); const btn=c.querySelector('.favorite-btn'); btn.addEventListener('click',(e)=>{ e.stopPropagation(); toggleFavorite(parseInt(btn.dataset.id)); }); }); }
+            function renderFavorites(){ const fav=MUSEUMS_DB.filter(m=>favorites.includes(m.id)); if(!fav.length){ favoritesListDiv.innerHTML='<p style="font-size:0.75rem;color:var(--text-muted);text-align:center">⭐ Добавьте музеи в избранное</p>'; return; } favoritesListDiv.innerHTML=fav.map(m=>`<div class="favorite-item" data-id="${m.id}"><span>🏛️ ${m.name[currentLanguage]||m.name.ru}</span><button class="remove-fav" data-id="${m.id}">✕</button></div>`).join(''); document.querySelectorAll('.favorite-item').forEach(it=>{ it.addEventListener('click',(e)=>{ if(!e.target.classList.contains('remove-fav')){ const mu=fav.find(m=>m.id==it.dataset.id); if(mu){ messageInput.value=`Расскажи о музее ${mu.name[currentLanguage]||mu.name.ru}`; sendMessage(); } } }); const rm=it.querySelector('.remove-fav'); rm.addEventListener('click',(e)=>{ e.stopPropagation(); toggleFavorite(parseInt(rm.dataset.id)); }); }); }
+            function toggleFavorite(id){ if(favorites.includes(id)) favorites=favorites.filter(f=>f!==id); else favorites.push(id); localStorage.setItem('favorites',JSON.stringify(favorites)); renderMuseums(); renderFavorites(); showToast(favorites.includes(id)?'✅ Добавлено в избранное':'❌ Удалено из избранного'); }
+            function searchMuseums(){ const q=searchInput.value.toLowerCase().trim(); if(!q){ currentMuseums=[...MUSEUMS_DB]; renderMuseums(); return; } currentMuseums=MUSEUMS_DB.filter(m=>m.name.ru.toLowerCase().includes(q)||(m.name.kz&&m.name.kz.toLowerCase().includes(q))||(m.name.en&&m.name.en.toLowerCase().includes(q))||m.city.toLowerCase().includes(q)||(m.city_kz&&m.city_kz.toLowerCase().includes(q))); renderMuseums(); }
+            function filterByCity(city){ if(!city) currentMuseums=[...MUSEUMS_DB]; else currentMuseums=MUSEUMS_DB.filter(m=>m.city===city||m.city_kz===city); renderMuseums(); }
+            function findMuseumsInText(txt){ const cities=['Астана','Astana','Алматы','Almaty','Кокшетау','Kokshetau','Көкшетау','Шымкент','Shymkent']; for(let city of cities){ if(txt.toLowerCase().includes(city.toLowerCase())){ let norm=city; if(city==='Көкшетау') norm='Кокшетау'; else if(city==='Astana') norm='Астана'; else if(city==='Almaty') norm='Алматы'; else if(city==='Kokshetau') norm='Кокшетау'; else if(city==='Shymkent') norm='Шымкент'; const found=MUSEUMS_DB.filter(m=>m.city===norm||m.city_kz===norm); if(found.length) return {found:true,museums:found,city:norm}; } } return {found:false,museums:[]}; }
+            async function getAIResponse(msg){ const lower=msg.toLowerCase(); const lang=currentLanguage; const kb={ ru:{ticket:"Стоимость билетов: взрослый 500-1000 ₸, студенческий 200-500 ₸, дети часто бесплатно.",schedule:"Обычно музеи работают Вт-Вс 10:00-18:00, понедельник выходной.",exhibits:"В музеях Казахстана: сакские артефакты, оружие кочевников, художественные произведения.",recommend:"Рекомендую: Национальный музей (Астана), Музей Кастеева (Алматы), музей в Кокшетау.",address:"Напишите название города, чтобы найти адрес музея.",greeting:"👋 Здравствуйте! Я AI-помощник по музеям Казахстана." }, kz:{ ticket:"Билет бағасы: ересек 500-1000 ₸, студент 200-500 ₸, балалар тегін.", schedule:"Мұражайлар Сс-Жс 10:00-18:00, Дс демалыс.", exhibits:"Қазақстан мұражайларында сақ артефактілері, көшпенділер қаруы, көркемсурет.", recommend:"Ұсыныс: Ұлттық музей (Астана), Қастеев музейі (Алматы), Көкшетау музейі.", address:"Мекенжай үшін қала атауын жазыңыз.", greeting:"👋 Сәлеметсіз бе! Мен мұражай көмекшісімін." }, en:{ ticket:"Ticket prices: adult 500-1000 ₸, student 200-500 ₸, children free.", schedule:"Usually Tue-Sun 10:00-18:00, Mon closed.", exhibits:"Saka artifacts, nomadic weapons, art masterpieces.", recommend:"Recommend: National Museum (Astana), Kasteev Museum (Almaty).", address:"Write a city name to get museum address.", greeting:"👋 Hello! I am an AI assistant for museums." } }; const know=kb[lang]; if(lower.includes('билет')||lower.includes('ticket')||lower.includes('баға')) return know.ticket; if(lower.includes('расписан')||lower.includes('schedule')||lower.includes('жұмыс')) return know.schedule; if(lower.includes('экспонат')||lower.includes('exhibit')||lower.includes('коллекц')) return know.exhibits; if(lower.includes('рекоменд')||lower.includes('recommend')||lower.includes('ұсын')) return know.recommend; if(lower.includes('адрес')||lower.includes('address')||lower.includes('мекенжай')){ const res=findMuseumsInText(msg); if(res.found && res.museums[0]){ const m=res.museums[0]; return `📍 ${m.name[lang]||m.name.ru}\nАдрес: ${typeof m.address==='object'?(m.address[lang]||m.address.ru):m.address}\n📞 ${m.phone}\n🗺️ [Карта](https://www.google.com/maps/search/?api=1&query=${m.coordinates.lat},${m.coordinates.lng})`; } return know.address; } const museumByName=MUSEUMS_DB.find(m=>lower.includes(m.name.ru.toLowerCase())||(m.name.kz && lower.includes(m.name.kz.toLowerCase()))||(m.name.en && lower.includes(m.name.en.toLowerCase()))); if(museumByName){ const m=museumByName; return `🏛️ **${m.name[lang]||m.name.ru}**\n\n📖 ${m.description[lang]||m.description.ru}\n🕐 Расписание: ${typeof m.schedule==='object'?Object.entries(m.schedule).map(([k,v])=>`${k}: ${v}`).join(', '):m.schedule}\n📍 Адрес: ${typeof m.address==='object'?(m.address[lang]||m.address.ru):m.address}\n📞 ${m.phone}\n🌐 ${m.website}`; } const cityResult=findMuseumsInText(msg); if(cityResult.found){ let resp=`🏛️ **Музеи в ${cityResult.city}:${cityResult.museums.length}**\n\n`; cityResult.museums.forEach(m=>{ resp+=`• **${m.name[lang]||m.name.ru}**\n  📍 ${typeof m.address==='object'?(m.address[lang]||m.address.ru):m.address}\n  🕐 ${typeof m.schedule==='object'?(m.schedule.tue_fri||m.schedule.tue_sun||'10:00-18:00'):m.schedule}\n\n`; }); return resp; } if(lower.includes('привет')||lower.includes('hello')||lower.includes('сәлем')) return know.greeting; return "Извините, не нашел информацию. Попробуйте спросить о музеях в Астане, Алматы или Кокшетау, о билетах или расписании."; }
+            async function sendMessage(){ const msg=messageInput.value.trim(); if(!msg) return; addMessageToChat('user',msg); messageInput.value=''; autoResizeTextarea(); typingIndicator.style.display='flex'; chatMessagesDiv.scrollTop=chatMessagesDiv.scrollHeight; const reply=await getAIResponse(msg); typingIndicator.style.display='none'; addMessageToChat('bot',reply); }
+            function autoResizeTextarea(){ messageInput.style.height='auto'; messageInput.style.height=Math.min(messageInput.scrollHeight,100)+'px'; }
+            function startVoiceInput(){ if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){ showToast('❌ Голосовой ввод не поддерживается'); return; } const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition; currentRecognition=new SpeechRecognition(); currentRecognition.lang=currentLanguage==='kz'?'kk-KZ':currentLanguage==='en'?'en-US':'ru-RU'; currentRecognition.interimResults=false; voiceModal.style.display='flex'; currentRecognition.start(); currentRecognition.onresult=(e)=>{ const transcript=e.results[0][0].transcript; messageInput.value=transcript; voiceModal.style.display='none'; sendMessage(); }; currentRecognition.onerror=()=>{ voiceModal.style.display='none'; showToast('❌ Ошибка распознавания'); }; currentRecognition.onend=()=>{ voiceModal.style.display='none'; }; }
+            function toggleTheme(){ const dark=document.documentElement.getAttribute('data-theme')==='dark'; if(dark){ document.documentElement.removeAttribute('data-theme'); localStorage.setItem('theme','light'); themeToggleBtn.textContent='🌙 Тёмная тема'; }else{ document.documentElement.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); themeToggleBtn.textContent='☀️ Светлая тема'; } }
+            function loadTheme(){ if(localStorage.getItem('theme')==='dark'){ document.documentElement.setAttribute('data-theme','dark'); themeToggleBtn.textContent='☀️ Светлая тема'; } }
+            function init(){ renderMuseums(); renderFavorites(); loadTheme(); loadChatHistory(); sendBtn.addEventListener('click',sendMessage); messageInput.addEventListener('keypress',(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } }); messageInput.addEventListener('input',autoResizeTextarea); searchBtn.addEventListener('click',searchMuseums); searchInput.addEventListener('keypress',(e)=>{ if(e.key==='Enter') searchMuseums(); }); document.querySelectorAll('.city-filter').forEach(btn=>{ btn.addEventListener('click',()=>{ document.querySelectorAll('.city-filter').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); filterByCity(btn.dataset.city); }); }); document.querySelectorAll('.lang-option').forEach(btn=>{ btn.addEventListener('click',()=>{ document.querySelectorAll('.lang-option').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); currentLanguage=btn.dataset.lang; renderMuseums(); renderFavorites(); showToast(`🌐 Язык: ${btn.textContent}`); }); }); document.querySelectorAll('.suggestion-chip').forEach(btn=>{ btn.addEventListener('click',()=>{ messageInput.value=btn.dataset.query; sendMessage(); }); }); themeToggleBtn.addEventListener('click',toggleTheme); voiceBtn.addEventListener('click',startVoiceInput); clearChatBtn.addEventListener('click',clearChatHistory); menuToggle.addEventListener('click',()=>sidebar.classList.toggle('open')); closeSidebar.addEventListener('click',()=>sidebar.classList.remove('open')); stopVoiceBtn.addEventListener('click',()=>{ if(currentRecognition)currentRecognition.stop(); voiceModal.style.display='none'; }); document.addEventListener('click',(e)=>{ if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) sidebar.classList.remove('open'); }); } init();
+        })();
+    </script>
+</body>
+</html>
